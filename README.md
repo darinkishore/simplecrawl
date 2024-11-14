@@ -15,7 +15,7 @@ pip install simplecrawl
 `export FIRECRAWL_URL_BASE="url"`
 
 ```python
-from src.simplecrawl import Client
+from simplecrawl import Client
 
 # Initialize client
 client = Client(base_url="some-url", ) # defaults to https://api.firecrawl.dev/v1 as base URL if not found in environment
