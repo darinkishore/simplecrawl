@@ -1,7 +1,39 @@
 [project]
 name = "simplecrawl"
 version = "0.1.0"
-description = "Add your description here"
+description = "Python client for Firecrawl-Simple"
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = []
+authors = [
+    { name = "Darin", email = "86675935+darinkishore@users.noreply.github.com" },
+]
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["web-scraping", "crawling", "async", "http"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = ["pydantic>=2.0.0", "httpx>=0.24.0", "requests>=2.32.3", "python-dotenv>=1.0.1"]
+
+[project.urls]
+Homepage = "https://github.com/darinkishore/simplecrawl"
+Repository = "https://github.com/darinkishore/simplecrawl"
+Documentation = "https://github.com/darinkishore/simplecrawl#readme"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "respx>=0.21.1",
+]
