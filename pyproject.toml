@@ -1,5 +1,5 @@
 [project]
-name = "simplecrawl"
+name = "firecrawl-simple-client"
 version = "0.1.0"
 description = "Python client for Firecrawl-Simple"
 readme = "README.md"
@@ -20,7 +20,12 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-dependencies = ["pydantic>=2.0.0", "httpx>=0.24.0", "requests>=2.32.3", "python-dotenv>=1.0.1"]
+dependencies = [
+    "pydantic>=2.0.0",
+    "httpx>=0.24.0",
+    "requests>=2.32.3",
+    "python-dotenv>=1.0.1",
+]
 
 [project.urls]
 Homepage = "https://github.com/darinkishore/simplecrawl"
@@ -32,8 +37,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv]
-dev-dependencies = [
-    "pytest>=8.3.3",
-    "pytest-asyncio>=0.24.0",
-    "respx>=0.21.1",
-]
+dev-dependencies = ["pytest>=8.3.3", "pytest-asyncio>=0.24.0", "respx>=0.21.1"]
