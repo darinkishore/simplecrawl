@@ -1,6 +1,6 @@
 # SimpleCrawl
 
-A typed client for the `firecrawl-simple` self-hosted API.
+A typed client for the [`firecrawl-simple`](https://github.com/nustato/firecrawl-simple) self-hosted API.
 
 ## Installation
 
