@@ -5,7 +5,7 @@ A typed client for the [`firecrawl-simple`](https://github.com/nustato/firecrawl
 ## Installation
 
 ```bash
-pip install simplecrawl
+pip install firecrawl-simple-client
 ```
 
 ## Quick Start
