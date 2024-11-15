@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Darin", email = "86675935+darinkishore@users.noreply.github.com" },
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 keywords = ["web-scraping", "crawling", "async", "http"]
 classifiers = [
@@ -40,4 +40,5 @@ build-backend = "hatchling.build"
 dev-dependencies = ["pytest>=8.3.3", "pytest-asyncio>=0.24.0", "respx>=0.21.1"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["simplecrawl"]
+packages = ["simplecrawl"]  # Keep the internal package name
+source-dir = "src"  # Specify the source directory
