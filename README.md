@@ -2,6 +2,12 @@
 
 A typed client for the [`firecrawl-simple`](https://github.com/nustato/firecrawl-simple) self-hosted API.
 
+Disclaimer: Almost certainly bugs in here, especially with crawl functionality.
+
+Contributions welcome.
+
+Am not currently using. Please report any issues or file a PR!
+
 ## Installation
 
 ```bash
