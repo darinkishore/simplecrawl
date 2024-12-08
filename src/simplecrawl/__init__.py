@@ -1,21 +1,30 @@
-"""SimpleCrawl - A simple, modern Python client for the `firecrawl-simple` API."""
+"""MyFirecrawlClient
 
-from simplecrawl.async_client import AsyncClient
-from simplecrawl.models import (
+A typed Python client for the firecrawl-simple API.
+
+Provides synchronous and asynchronous clients.
+"""
+
+from .async_client import AsyncFirecrawlClient
+from .models import (
     CrawlJob,
+    CrawlState,
     CrawlStatus,
     MapResult,
+    Metadata,
+    OutputFormat,
     ScrapeResult,
 )
-from simplecrawl.sync_client import Client
+from .sync_client import FirecrawlClient
 
 __all__ = [
-    "Client",
-    "AsyncClient",
-    "CrawlJob",
-    "CrawlStatus",
-    "MapResult",
+    "OutputFormat",
+    "CrawlState",
+    "Metadata",
     "ScrapeResult",
+    "CrawlStatus",
+    "CrawlJob",
+    "MapResult",
+    "FirecrawlClient",
+    "AsyncFirecrawlClient",
 ]
-
-__version__ = "0.1.0"

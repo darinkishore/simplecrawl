@@ -1,120 +1,114 @@
-import os
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import requests
-from dotenv import load_dotenv
 
-from .models import CrawlJob, CrawlStatus, FormatType, MapResult, ScrapeResult
+from .models import (
+    CrawlJob,
+    CrawlStatus,
+    MapResult,
+    ScrapeResult,
+)
 
-# TODO: handle screenshot formats
 
-
-class Client:
+class FirecrawlClient:
     """
-    Synchronous client for the Firecrawl web scraping API.
+    Synchronous client for the firecrawl-simple API.
 
-    Provides methods to scrape single pages, crawl multiple pages,
-    and discover URLs on websites.
+    This client allows you to:
+    - Scrape a single URL for content and metadata.
+    - Start and manage crawl jobs to scrape multiple pages.
+    - Map (discover) URLs on a given website without scraping.
 
-    Args:
-        token: API authentication token (optional)
-        base_url: API endpoint (default: https://api.firecrawl.dev/v1)
-
-    Basic Usage:
-
-    ```python
-        # Initialize client
-        client = Client(token="your-api-token")
+    Usage:
+        client = FirecrawlClient(base_url="https://api.firecrawl.dev/v1")
 
         # Scrape a single page
-        result = client.scrape("https://example.com")
-        print(result.markdown)  # Print markdown content
-        print(result.metadata.title)  # Print page title
+        scrape_result = client.scrape("https://example.com")
+        print(scrape_result.markdown)
 
-        # Scrape with multiple formats
-        result = client.scrape(
-            "https://example.com",
-            formats=["markdown", "html", "links"]
-        )
-    ```
+        # Start a crawl
+        crawl_job = client.crawl("https://example.com", max_depth=2, limit=5)
+        print("Crawl Job ID:", crawl_job.id)
 
+        # Check crawl status
+        status = client.get_crawl_status(crawl_job.id)
+        print("Crawl Status:", status.status)
+
+        # Cancel the crawl
+        success = client.cancel_crawl(crawl_job.id)
+        print("Crawl Cancelled:", success)
+
+        # Map URLs
+        map_result = client.map("https://example.com")
+        print("Found links:", map_result.links)
     """
 
-    def __init__(
-        self,
-        token: Optional[str] = None,
-        base_url: str = os.getenv("FIRECRAWL_BASE_URL", None),
-    ):
-        load_dotenv()
+    def __init__(self, base_url: str) -> None:
+        """
+        Initialize the FirecrawlClient.
+
+        Args:
+            base_url: The base URL for the API, e.g. "https://api.firecrawl.dev/v1"
+        """
         if not base_url:
-            raise ValueError("Base URL is required")
+            raise ValueError("Base URL must be provided.")
         self.base_url = base_url.rstrip("/")
         self.session = requests.Session()
-        if token:
-            self.session.headers.update({"Authorization": f"Bearer {token}"})
 
     def scrape(
         self,
         url: str,
-        formats: Optional[List[FormatType]] = None,
+        formats: Optional[List[str]] = None,
         include_tags: Optional[List[str]] = None,
         exclude_tags: Optional[List[str]] = None,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[Dict[str, Any]] = None,
         wait_for: int = 0,
         timeout: int = 30000,
+        extract_schema: Optional[Dict[str, Any]] = None,
+        extract_system_prompt: Optional[str] = None,
+        extract_prompt: Optional[str] = None,
     ) -> ScrapeResult:
         """
-        Scrape content from a single URL.
+        Scrape a single URL for content and metadata.
 
         Args:
-            url: The webpage to scrape
-            formats: Content formats to retrieve (default: ["markdown"])
-            include_tags: HTML elements to include (e.g., ["article", "main"])
-            exclude_tags: HTML elements to exclude (e.g., ["nav", "footer"])
-            headers: Custom HTTP headers for the request
-            wait_for: Milliseconds to wait before scraping (for JS content)
-            timeout: Request timeout in milliseconds
+            url: URL to scrape.
+            formats: List of formats to retrieve. Defaults to ["markdown"].
+            include_tags: Tags to include in scraping.
+            exclude_tags: Tags to exclude from scraping.
+            headers: Custom HTTP headers for the request.
+            wait_for: Milliseconds to wait before scraping (helpful for JS-heavy sites).
+            timeout: Request timeout in milliseconds.
+            extract_schema: Schema for LLM extraction.
+            extract_system_prompt: System prompt for extraction.
+            extract_prompt: User prompt for extraction.
 
         Returns:
-            ScrapeResult containing the requested content formats and metadata
-
-        Examples:
-            ```python
-            # Basic markdown scraping
-            result = client.scrape("https://example.com")
-            print(result.markdown)
-
-            # Get HTML and list of links
-            result = client.scrape(
-                "https://example.com",
-                formats=["html", "links"],
-                exclude_tags=["nav", "footer", "aside"]
-            )
-
-            print(f"Found {len(result.links)} links")
-            print(result.html)
-            ```
+            A ScrapeResult model containing scraped content and metadata.
         """
-        # include parts of payload only if they are not None
-        payload = {}
-        if url:
-            payload["url"] = url
-        if formats:
-            payload["formats"] = formats
-        if include_tags:
+        payload: Dict[str, Any] = {
+            "url": url,
+            "formats": formats or ["markdown"],
+            "waitFor": wait_for,
+            "timeout": timeout,
+        }
+        if include_tags is not None:
             payload["includeTags"] = include_tags
-        if exclude_tags:
+        if exclude_tags is not None:
             payload["excludeTags"] = exclude_tags
-        if headers:
+        if headers is not None:
             payload["headers"] = headers
-        if wait_for:
-            payload["waitFor"] = wait_for
-        if timeout:
-            payload["timeout"] = timeout
 
-        response = self.session.post(f"{self.base_url}/v1/scrape", json=payload)
-        response.raise_for_status()
-        data = response.json()
+        if extract_schema or extract_system_prompt or extract_prompt:
+            payload["extract"] = {
+                "schema": extract_schema,
+                "systemPrompt": extract_system_prompt,
+                "prompt": extract_prompt,
+            }
+
+        resp = self.session.post(f"{self.base_url}/scrape", json=payload)
+        resp.raise_for_status()
+        data = resp.json()
         return ScrapeResult.model_validate(data["data"])
 
     def crawl(
@@ -128,106 +122,93 @@ class Client:
         allow_backward_links: bool = False,
         allow_external_links: bool = False,
         webhook: Optional[str] = None,
-        scrape_formats: Optional[List[FormatType]] = None,
-        scrape_headers: Optional[Dict[str, str]] = None,
+        scrape_formats: Optional[List[str]] = None,
+        scrape_headers: Optional[Dict[str, Any]] = None,
         scrape_include_tags: Optional[List[str]] = None,
         scrape_exclude_tags: Optional[List[str]] = None,
         scrape_wait_for: int = 123,
     ) -> CrawlJob:
         """
-        Start a crawl job to scrape multiple pages.
+        Start a crawl job to scrape multiple pages starting from a given URL.
 
         Args:
-            url: Starting URL for the crawl
-            exclude_paths: URL patterns to skip (e.g., ["/admin/*", "/private/*"])
-            include_paths: URL patterns to crawl (e.g., ["/blog/*", "/products/*"])
-            max_depth: Maximum number of links to follow from start URL
-            ignore_sitemap: Whether to ignore sitemap.xml
-            limit: Maximum number of pages to crawl
-            allow_backward_links: Allow revisiting previously seen URLs
-            allow_external_links: Allow following links to other domains
-            webhook: URL to receive crawl status updates
-            scrape_formats: Content formats to get from each page
-            scrape_headers: Custom HTTP headers for requests
-            scrape_include_tags: HTML elements to include
-            scrape_exclude_tags: HTML elements to exclude
-            scrape_wait_for: Milliseconds to wait before scraping each page
+            url: Starting URL.
+            exclude_paths: URL patterns to exclude.
+            include_paths: URL patterns to include.
+            max_depth: Max crawl depth.
+            ignore_sitemap: Whether to ignore sitemap.xml.
+            limit: Maximum number of pages to crawl.
+            allow_backward_links: Whether to allow navigation back to previously linked pages.
+            allow_external_links: Whether to allow following external domains.
+            webhook: URL to send crawl status updates.
+            scrape_formats: Formats to scrape each page with.
+            scrape_headers: Headers for each request during crawl.
+            scrape_include_tags: Tags to include in each page scrape.
+            scrape_exclude_tags: Tags to exclude in each page scrape.
+            scrape_wait_for: Milliseconds to wait before scraping each page.
 
         Returns:
-            CrawlJob containing the job ID for status checks
-
-        Examples:
-            ```python
-            # Crawl product pages
-            job = client.crawl(
-                "https://example.com",
-                include_paths=["/products/*"],
-                max_depth=3,
-                limit=100
-            )
-
-            # Check crawl progress
-            status = client.get_crawl_status(job.id)
-            print(f"Crawled {status.completed} of {status.total} pages")
-
-            # Access results
-            for page in status.data:
-                print(f"Page: {page.metadata.title}")
-                print(page.markdown)
-            ```
+            A CrawlJob model with the job ID for checking status.
         """
-        payload = {
+        payload: Dict[str, Any] = {
             "url": url,
-            "excludePaths": exclude_paths,
-            "includePaths": include_paths,
             "maxDepth": max_depth,
             "ignoreSitemap": ignore_sitemap,
             "limit": limit,
             "allowBackwardLinks": allow_backward_links,
             "allowExternalLinks": allow_external_links,
-            "webhook": webhook,
             "scrapeOptions": {
                 "formats": scrape_formats or ["markdown"],
-                "headers": scrape_headers,
-                "includeTags": scrape_include_tags,
-                "excludeTags": scrape_exclude_tags,
                 "waitFor": scrape_wait_for,
             },
         }
 
-        response = self.session.post(f"{self.base_url}/v1/crawl", json=payload)
-        response.raise_for_status()
-        data = response.json()
+        if exclude_paths is not None:
+            payload["excludePaths"] = exclude_paths
+        if include_paths is not None:
+            payload["includePaths"] = include_paths
+        if webhook is not None:
+            payload["webhook"] = webhook
+        if scrape_headers is not None:
+            payload["scrapeOptions"]["headers"] = scrape_headers
+        if scrape_include_tags is not None:
+            payload["scrapeOptions"]["includeTags"] = scrape_include_tags
+        if scrape_exclude_tags is not None:
+            payload["scrapeOptions"]["excludeTags"] = scrape_exclude_tags
+
+        resp = self.session.post(f"{self.base_url}/crawl", json=payload)
+        resp.raise_for_status()
+        data = resp.json()
         return CrawlJob.model_validate(data)
 
     def get_crawl_status(self, job_id: str) -> CrawlStatus:
         """
-        Check the status and get results from a crawl job.
+        Retrieve the status of a crawl job.
 
         Args:
-            job_id: ID of the crawl job to check
+            job_id: The crawl job ID.
 
         Returns:
-            CrawlStatus with job progress and available results
+            A CrawlStatus model with current job status and data.
         """
-        response = self.session.get(f"{self.base_url}/v1/crawl/{job_id}")
-        response.raise_for_status()
-        data = response.json()
+        resp = self.session.get(f"{self.base_url}/crawl/{job_id}")
+        resp.raise_for_status()
+        data = resp.json()
         return CrawlStatus.model_validate(data)
 
     def cancel_crawl(self, job_id: str) -> bool:
         """
-        Cancel an in-progress crawl job.
+        Cancel a running crawl job.
 
         Args:
-            job_id: ID of the crawl job to cancel
+            job_id: The crawl job ID.
 
         Returns:
-            True if cancellation was successful
+            True if successfully cancelled, False otherwise.
         """
-        response = self.session.delete(f"{self.base_url}/v1/crawl/{job_id}")
-        response.raise_for_status()
-        data = response.json()
+        resp = self.session.delete(f"{self.base_url}/crawl/{job_id}")
+        resp.raise_for_status()
+        data = resp.json()
         return data.get("success", False)
 
     def map(
@@ -239,40 +220,29 @@ class Client:
         limit: int = 5000,
     ) -> MapResult:
         """
-        Discover URLs on a website without scraping content.
+        Map (discover) URLs from a given website.
 
         Args:
-            url: Website to map
-            search: Optional search term to filter URLs
-            ignore_sitemap: Whether to ignore sitemap.xml
-            include_subdomains: Include URLs from subdomains
-            limit: Maximum URLs to return (max 5000)
+            url: The base URL to start from.
+            search: Optional search query to filter results.
+            ignore_sitemap: Whether to ignore the sitemap.
+            include_subdomains: Whether to include subdomains.
+            limit: Maximum number of links to return.
 
         Returns:
-            MapResult containing the discovered URLs
-
-        Example:
-            ```python
-            # Find all blog posts
-            result = client.map(
-                "https://example.com",
-                search="blog",
-                limit=1000
-            )
-
-            for url in result.links:
-                print(url)
-            ```
+            A MapResult model with discovered links.
         """
-        payload = {
+        payload: Dict[str, Any] = {
             "url": url,
-            "search": search,
             "ignoreSitemap": ignore_sitemap,
             "includeSubdomains": include_subdomains,
             "limit": limit,
         }
 
-        response = self.session.post(f"{self.base_url}/v1/map", json=payload)
-        response.raise_for_status()
-        data = response.json()
+        if search is not None:
+            payload["search"] = search
+
+        resp = self.session.post(f"{self.base_url}/map", json=payload)
+        resp.raise_for_status()
+        data = resp.json()
         return MapResult.model_validate(data)

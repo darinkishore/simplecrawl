@@ -1,12 +1,17 @@
 # SimpleCrawl
 
-A typed client for the [`firecrawl-simple`](https://github.com/nustato/firecrawl-simple) self-hosted API.
+A typed client for the [`firecrawl-simple`](https://github.com/nustato/firecrawl-simple) self-hosted API. 
 
-Disclaimer: Almost certainly bugs in here, especially with crawl functionality.
+Synchronous and asynchronous clients.
 
 Contributions welcome.
 
-Am not currently using. Please report any issues or file a PR!
+## Features
+
+- Scrape a single URL
+- Start and manage crawl jobs
+- Map (discover) URLs from a site
+- No Auth!
 
 ## Installation
 
@@ -70,3 +75,44 @@ For detailed examples, check out the examples folder.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+A typed, synchronous and asynchronous Python client for the `firecrawl-simple` API.
+
+
+
+## Installation
+
+```bash
+pip install myfirecrawlclient
+```
+
+## Usage
+
+### Synchronous
+
+```python
+from myfirecrawlclient import FirecrawlClient
+
+client = FirecrawlClient(base_url="https://api.firecrawl.dev/v1")
+
+# Scrape a single page
+result = client.scrape("https://example.com")
+print(result.metadata.title, result.markdown)
+```
+
+### Asynchronous
+
+```python
+import asyncio
+from myfirecrawlclient import AsyncFirecrawlClient
+
+async def main():
+    async with AsyncFirecrawlClient(base_url="https://api.firecrawl.dev/v1") as client:
+        result = await client.scrape("https://example.com")
+        print(result.metadata.title, result.markdown)
+
+asyncio.run(main())
+```
+

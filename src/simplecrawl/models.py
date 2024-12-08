@@ -1,32 +1,27 @@
 from datetime import datetime
 from enum import Enum
-from typing import Literal, Optional, List
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, HttpUrl, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 
 class OutputFormat(str, Enum):
-    """Available formats for content output."""
+    """Available formats for content output from the scrape endpoint."""
 
-    MARKDOWN = "markdown"  # Cleaned, readable markdown version of the page
-    HTML = "html"  # Cleaned HTML version of the page
-    RAW_HTML = "rawHtml"  # Original HTML as received from the server
-    LINKS = "links"  # List of all links found on the page
-    SCREENSHOT = "screenshot"  # Screenshot of the visible area
-    SCREENSHOT_FULL = "screenshot@fullPage"  # Full page screenshot
-
-
-FormatType = Literal[
-    "markdown", "html", "rawHtml", "links", "screenshot", "screenshot@fullPage"
-]
+    MARKDOWN = "markdown"
+    HTML = "html"
+    RAW_HTML = "rawHtml"
+    LINKS = "links"
+    SCREENSHOT = "screenshot"
+    SCREENSHOT_FULL = "screenshot@fullPage"
 
 
 class CrawlState(str, Enum):
     """Possible states of a crawl job."""
 
-    SCRAPING = "scraping"  # Currently crawling pages
-    COMPLETED = "completed"  # Successfully finished
-    FAILED = "failed"  # Encountered an error and stopped
+    SCRAPING = "scraping"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 class Metadata(BaseModel):
@@ -45,34 +40,37 @@ class Metadata(BaseModel):
 class ScrapeResult(BaseModel):
     """Content and metadata from a scraped page."""
 
-    markdown: Optional[str] = None  # Markdown version of the content
-    html: Optional[str] = None  # Clean HTML version
-    raw_html: Optional[str] = Field(None, alias="rawHtml")  # Original HTML
-    links: Optional[List[str]] = None  # All links found on the page
-    metadata: Metadata  # Page metadata (title, description, etc)
+    markdown: Optional[str] = None
+    html: Optional[str] = None
+    raw_html: Optional[str] = Field(None, alias="rawHtml")
+    links: Optional[List[str]] = None
+    metadata: Metadata
+    # llm_extraction and warning are not fully typed as they are optional, dynamic fields.
+    llm_extraction: Optional[Dict[str, Any]] = Field(None, alias="llm_extraction")
+    warning: Optional[str] = None
 
 
 class CrawlStatus(BaseModel):
-    """Current status and results of a crawl job."""
+    """Status and results of a crawl job."""
 
     status: CrawlState
-    total: int  # Total pages attempted
-    completed: int  # Successfully crawled pages
+    total: int
+    completed: int
     expires_at: datetime = Field(..., alias="expiresAt")
-    next: Optional[str] = None  # URL for next batch of results
-    data: List[ScrapeResult]  # Results from crawled pages
+    next: Optional[str] = None
+    data: List[ScrapeResult]
 
 
 class CrawlJob(BaseModel):
     """Reference to a created crawl job."""
 
     success: bool
-    id: str  # Job identifier for status checks
-    url: HttpUrl  # Starting URL of the crawl
+    id: str
+    url: HttpUrl
 
 
 class MapResult(BaseModel):
     """Result of URL mapping operation."""
 
     success: bool
-    links: List[str]  # Discovered URLs
+    links: List[str]
